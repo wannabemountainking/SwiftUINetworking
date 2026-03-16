@@ -28,6 +28,9 @@ struct RandomUser: Codable {
 
 // MARK: - UI
 struct URLSession1: View {
+    
+    @State private var user: RandomUser = RandomUser(username: "user name", image: "", email: "google@gmail.com", age: 0)
+    
     var body: some View {
         VStack(spacing: 20) {
             // image
@@ -36,19 +39,21 @@ struct URLSession1: View {
                 .frame(width: 200, height: 200)
             // username age
             HStack(spacing: 20) {
-                Text("User Name")
+                Text(user.username)
                     .font(.title.bold())
-                Text("30")
+                Text("\(user.age)")
                     .font(.title.bold())
             }
             // email
-            Text("google@gmail.com")
+            Text(user.email)
                 .font(.title2)
                 .padding()
             
             // refresh button
             Button(action: {
-                
+                Task {
+                    user = await getUser()
+                }
             }, label: {
                 Text("Get Random User")
                     .font(.title)
@@ -61,6 +66,22 @@ struct URLSession1: View {
         } //:VSTACK
         .padding()
     }
+    
+    // MARK: - Function
+    private func getUser() async -> RandomUser {
+        let urlString = "https://dummyjson.com/users/\(Int.random(in: 1...100))"
+        let url = URL(string: urlString)!
+        let session = URLSession.shared
+        do {
+            let (data, _) = try await session.data(from: url)
+            let decoder = JSONDecoder()
+            let randomUser = try decoder.decode(RandomUser.self, from: data)
+            return randomUser
+        } catch {
+            fatalError("Error on Getting Data: \(error)")
+        }
+    }
+    
 }
 
 #Preview {
