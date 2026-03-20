@@ -21,17 +21,28 @@ final class URLSessionFinalViewModel {
     var cancellable: Set<AnyCancellable> = Set<AnyCancellable>()
     
     // Error 처리 위한 함수
-    func handleResponse(data: Data?, response: URLResponse?) throws -> UIImage? {
+    func handleResponse(data: Data?, response: HTTPURLResponse?) -> UIImage? {
         guard let data,
               let image = UIImage(data: data),
               let response = response as? HTTPURLResponse,
-              response.statusCode >= 200 && response.statusCode < 300 else {return nil}
+              response.statusCode >= 200 && response.statusCode < 300 else
+        {return nil}
         return image
     }
     
     // MARK: - 이미지 가져오기
     // MARK: - @escaping
+    func fetchImage() {
+        
+    }
     
+    func downloadWithEscaping(completion: @escaping (_ image: UIImage?, _ error: Error?) -> ()) {
+        guard let url = URL(string: endPoint) else {return}
+        let task = URLSession.shared.dataTask(with: url) {[weak self] data, res, err in
+            guard let self else {return}
+            let image = handleResponse(data: data, response: res as! HTTPURLResponse)
+        }
+    }
     // MARK: - Combine
     
     // MARK: - Async
@@ -60,7 +71,7 @@ struct URLSessionFinal: View {
                     }
                     
                     Button(action: {
-                        
+                        vm.fetchImage()
                     }, label: {
                         Text("Download Image with @escaping")
                             .frame(maxWidth: .infinity)
