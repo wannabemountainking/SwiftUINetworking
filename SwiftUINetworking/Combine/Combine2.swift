@@ -206,7 +206,8 @@ struct Combine2: View {
                 }
                 .buttonStyle(.borderedProminent)
                 .padding(.horizontal)
-                .disabled(!vm.idValid || !vm.passwordValid)
+                // disabled 로직만들기
+                .disabled(true)
                 
                 Spacer()
 
