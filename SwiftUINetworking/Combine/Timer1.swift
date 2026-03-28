@@ -19,6 +19,7 @@ struct Timer1: View {
      .autoconnect() : Publisher Timer가 UI가 업데이트 될 때마다 시작할 수 있게 함 (매번 초기화해서 업데이트)
      */
     let timer1 = Timer.publish(every: 1.0, on: .main, in: .common).autoconnect()
+    let timer2 = Timer.publish(every: 0.3, on: .main, in: .common).autoconnect()
     
     // 1. 현재 시간 변수
     @State private var currentDate: Date = Date()
@@ -32,6 +33,13 @@ struct Timer1: View {
     @State private var count: Int = 10
     @State private var finishedText: String? = nil
     
+    // 3. 카운트 다운 날짜
+    @State private var timeRemaining: String = ""
+    let futureDate: Date = Calendar.current.date(byAdding: .hour, value: 1, to: Date()) ?? Date()
+    
+    // 4. Animation Count
+    @State private var animationCount: Int = 0
+    
     // MARK: - UI
     var body: some View {
         NavigationStack {
@@ -41,10 +49,36 @@ struct Timer1: View {
                 Text(dateFormatter.string(from: currentDate))
                     .foregroundStyle(.accent)
                 
+                Divider()
+                
                 // 2. 카운트 다운: 10, 9, ....0
                 Text("2. 카운트 다운 Timer")
                 Text(finishedText ?? "\(count)")
                     .foregroundStyle(.accent)
+                
+                Divider()
+                
+                // 3. 카운트 다운 Date Timer
+                Text("3. 카운트 다운 Date Timer")
+                Text(timeRemaining)
+                    .foregroundStyle(.accent)
+                
+                Divider()
+                // 4. 로딩 애니메이션
+                Text("4. Loading Animation Timer")
+                    .font(.title)
+                
+                HStack(spacing: 15) {
+                    Circle()
+                        .offset(y: animationCount == 1 ? -20 : 0)
+                    Circle()
+                        .offset(y: animationCount == 2 ? -20 : 0)
+                    Circle()
+                        .offset(y: animationCount == 3 ? -20 : 0)
+                } //:HSTACK
+                .frame(width: 150, height: 150)
+                .foregroundStyle(.accent)
+                
             } //:VSTACK
             .font(.largeTitle.bold())
             .navigationTitle("Timer")
@@ -63,11 +97,30 @@ struct Timer1: View {
                     self.count -= 1
                 }
             }
+            
+            // 3. 카운트다운 Date Timer .onReceive
+            .onReceive(timer1) { _ in
+                updateTimeRemaining()
+            }
+            
+            // 4. Animation Count .onReceive
+            .onReceive(timer2) { _ in
+                withAnimation(.spring) {
+                    animationCount = animationCount == 3 ? 0 : animationCount + 1
+                }
+            }
+            
         } //:NAVIGATION
     }//:body
     
     // MARK: - Function
-    
+    func updateTimeRemaining() {
+        let remaining = Calendar.current.dateComponents([.hour, .minute, .second], from: Date(), to: futureDate)
+        let hour = remaining.hour ?? 0
+        let minute = remaining.minute ?? 0
+        let second = remaining.second ?? 0
+        timeRemaining = "\(hour):\(minute):\(second)"
+    }
 }
 
 #Preview {
