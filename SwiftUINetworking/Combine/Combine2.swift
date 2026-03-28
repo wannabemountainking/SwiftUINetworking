@@ -32,7 +32,7 @@ final class Combine2ViewModel {
     
     //PASSWORD TextField Property
     @ObservationIgnored @Published var textFieldPassword: String = ""
-    var passwordVaid: Bool = false
+    var passwordValid: Bool = false
     
     // Button Property
     var showButton: Bool = false
@@ -101,7 +101,24 @@ final class Combine2ViewModel {
     
     // PASSWORD Subscription
     func addPasswordSubscription() {
-        
+        $textFieldPassword
+            .debounce(for: .seconds(0.5), scheduler: DispatchQueue.main)
+            .receive(on: DispatchQueue.main)
+            .map { password in
+                return self.isPasswordValid(password)
+            }
+            .sink { [weak self] isValid in
+                guard let self else {return}
+                self.passwordValid = isValid
+            }
+            .store(in: &cancellable)
+    }
+    
+    private func isPasswordValid(_ password: String) -> Bool {
+        let hasUpperCase: Bool = password.contains { $0.isUppercase }
+        let hasNumber: Bool = password.contains { $0.isNumber }
+        let isLengthValid: Bool = password.count >= 8
+        return hasUpperCase && hasNumber && isLengthValid
     }
 }
 
@@ -135,8 +152,17 @@ struct Combine2: View {
                     TextField("ID를 입력하세요", text: $vm.textFieldID)
                         .textFieldStyle(.roundedBorder)
                         .padding(.horizontal)
-                        .overlay {
-
+                        .overlay(alignment: .trailing) {
+                            ZStack {
+                                Image(systemName: "xmark")
+                                    .foregroundStyle(.red)
+                                    .opacity(vm.textFieldID.count < 1 ? 0 : vm.idValid ? 0 : 1)
+                                Image(systemName: "checkmark")
+                                    .foregroundStyle(.green)
+                                    .opacity(vm.idValid ? 1 : 0)
+                            }
+                            .font(.title)
+                            .padding(.trailing)
                         }
                     
                     Text("* ID는 최소. 4글자 이상이어야 합니다")
@@ -150,6 +176,20 @@ struct Combine2: View {
                     SecureField("PASSWORD를 입력하세요", text: $vm.textFieldPassword)
                         .textFieldStyle(.roundedBorder)
                         .padding(.horizontal)
+                        .overlay(alignment: .trailing) {
+                            ZStack {
+                                Image(systemName: "xmark")
+                                    .foregroundStyle(.red)
+                                    .opacity(vm.textFieldPassword.count < 1 ? 0 : vm.passwordValid ? 0 : 1)
+                                
+                                Image(systemName: "checkmark")
+                                    .foregroundStyle(.green)
+                                    .opacity(vm.passwordValid ? 1 : 0)
+                            }
+                            .font(.title)
+                            .padding(.trailing)
+                        }
+
                     Text("* PASSWORD는 대문자, 숫자 포함 8글자 이상이어야 합니다")
                         .font(.footnote)
                         .foregroundStyle(.secondary)
@@ -166,7 +206,7 @@ struct Combine2: View {
                 }
                 .buttonStyle(.borderedProminent)
                 .padding(.horizontal)
-                .disabled(true)
+                .disabled(!vm.idValid || !vm.passwordValid)
                 
                 Spacer()
 
