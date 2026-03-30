@@ -31,13 +31,52 @@ final class Combine3DataService {
 }
 
 // MARK: - ViewModel
+@Observable
+final class Combine3ViewModel {
+    // properties
+    var data: [String] = []
+    let dataService = Combine3DataService()
+    var errorMessage: String = ""
+    var cancellable = Set<AnyCancellable>()
+    
+    init() {
+        addSubscribe()
+    }
+    
+    private func addSubscribe() {
+        dataService.$basicPublisher
+            .sink { completion in
+                switch completion {
+                case .finished:
+                    break
+                case .failure(let error):
+                    self.errorMessage = "Error: \(error)"
+                }
+            } receiveValue: { [weak self] returnedValue in
+                guard let self else {return}
+                self.data.append(returnedValue)
+            }
+            .store(in: &cancellable)
+    }
+}
 
 
 // MARK: - UI
 struct Combine3: View {
+    
+    @State @State private var vm: Combine3ViewModel = .init()
+    
     var body: some View {
-        Text(/*@START_MENU_TOKEN@*/"Hello, World!"/*@END_MENU_TOKEN@*/)
-    }
+        ScrollView {
+            VStack(spacing: 20) {
+                ForEach(vm.data, id: \.self) { item in
+                    Text(item)
+                        .font(.largeTitle)
+                        .bold()
+                } //:LOOP    
+            } //:VSTACK
+        } //:SCROLL
+    }//: Body
 }
 
 #Preview {
