@@ -29,7 +29,7 @@ final class Combine3DataService {
 //        let items: [String] = ["One", "Two", "Three"]
         
 //        let items: [Int] = Array(0..<6)
-        let items: [Int] = [0,1,2,3,4,7,5]
+        let items: [Int] = [0,1,2,2,0,3,4,7,5]
         for index in items.indices {
             DispatchQueue.main.asyncAfter(deadline: .now() + Double(index)) {
 //                self.basicPublisher = items[index]
@@ -131,10 +131,48 @@ final class Combine3ViewModel {
  //                }
  //                return int1 < int2
  //            })
-         */
+         
         // 3. Count: Stream line의 갯수
-            .count() // 7 출력
+//            .count() // 7 출력
+         */
         
+        // MARK: - Filter Operations
+        
+        // 1. map: 각각의 element 들의 데이터 변환(타입 등)을 줄 때 사용
+//            .map({ String($0) })
+//            .tryMap({ int in
+//                if int == 5 {
+//                    throw URLError(.badServerResponse)
+//                }
+//                return String(int)
+//            })
+        // 2. compactMap: map에서 nil인 경우만 정제해서 stream 출력
+        // map을 사용하게 되면 error도 같이 출력이 되는데 compactMap을 사용해서 정제된 data만 추출할 수 있음
+//            .compactMap({ int -> String? in
+//                if int == 7 {
+//                    return nil // 7 값을 return nil로 설정함에 따라서 compactMap 7값이 제거됨
+//                }
+//                return String(int) // 7 빼고 다 출력
+//            })
+        // 3. filter: 특정 조건에 맞으면 출력되는 것. 타입변환, 데이터 변환 없음
+//            .filter({ $0 > 3 }) // 3 이상인 것들만 출력 -> 4, 7, 5
+//            .tryFilter({ int in
+//                if int == 5 {
+//                    throw URLError(.badServerResponse)
+//                }
+//                return int > 3 // 나머지 4, 7는 출력됨
+//            })
+        // 4. removeDuplicate: Stream line에서 이전 값과 동일한 값을 삭제시켜줌 (소요시간은 줄지 않음)
+//            .removeDuplicates() // Array에서 나중에 나오는 0은 출력이 됨. 바로 이어지는 이전 element만 삭제한다는 것이 특징
+//            .removeDuplicates(by: { int1, int2 in // 여기서 int1: prev, int2: current
+//                return int1 >= int2
+//            }) // 같은 조건이 아니라, 만약 이전 것과 비교해서 앞의 것이 큰 것만 return하는 코드
+//            .tryRemoveDuplicates(by: { int1, int2 in
+//                if int1 == 2 {
+//                    throw URLError(.badServerResponse)
+//                }
+//                return int1 > int2
+//            }) // 0, 1, 2, Error 출력
             .map({ String($0) })
             .sink { completion in
                 switch completion {
