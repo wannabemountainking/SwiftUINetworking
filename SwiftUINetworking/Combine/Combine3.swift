@@ -30,6 +30,8 @@ final class Combine3DataService {
         
 //        let items: [Int] = Array(0..<6)
         let items: [Int] = [0,1,2,2,0,3,4,7,5]
+//        let items: [Int?] = [0,1,2,nil,3,4,5]
+        
         for index in items.indices {
             DispatchQueue.main.asyncAfter(deadline: .now() + Double(index)) {
 //                self.basicPublisher = items[index]
@@ -173,6 +175,29 @@ final class Combine3ViewModel {
 //                }
 //                return int1 > int2
 //            }) // 0, 1, 2, Error 출력
+        // 5. replaceNil: stream 에서 nil 값이 들어올 때 nil을 대신해서 값을 지정하고 넣어서 출력함
+//            .replaceNil(with: 0) // nil 값을 0으로 바꿔서 출력함
+        // 6. replaceError: stream에서 error가 발생할 때 특정 error 대신 특정 값으로 대체시킴
+//            .replaceError(with: "Error 가 발생됨")
+        // 7. scan : 누적 연산자 처리 Closure의 조건에 따라서 stream을 계수 누적한 값이 출력됨
+//            .scan(0, { prev, current in
+//                return prev + current
+//            })
+//            .scan(0, { $0 + $1 }) // 위의 축약버전
+//            .scan(5, +) // 더 축약버전
+//            .tryScan(0, {
+//                if $0 == 12 {
+//                    throw URLError(.badServerResponse)
+//                }
+//                return $0 + $1
+//            })
+        // 8. reduce: 위의 scan과 같으면서도, 중간에 값을 출력하지 않고 맨 마지막 값 1개만 출력
+//            .reduce(0, { prev, current in
+//                return prev + current
+//            })
+//            .reduce(0, { $0 + $1 }) // 축약버전
+            .reduce(0, -) // 더 축약버전
+        
             .map({ String($0) })
             .sink { completion in
                 switch completion {
