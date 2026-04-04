@@ -226,7 +226,20 @@ final class Combine3ViewModel {
         // 예) 데이터를 로딩할 때 인위적으로 딜레이를 줘서 ProgressView() 같이 로딩 이미지를 동작시키는 데 사용함 -> 늦게 실행할 뿐 분절적인 실행은 그대로임
 //            .delay(for: 3, scheduler: DispatchQueue.main)
         // 3. throttle: stream에서 지정된 시간 내에 Published된 가장 최근 또는 첫번째 요소만 걸러서 출력(for는 초 단위 인터벌을 가리킴)
-            .throttle(for: 2, scheduler: DispatchQueue.main, latest: false)
+        // 단, 값 출력 시점과 throttle의 interval이 겹치면 경계값의 문제가 발생할 수 있다. 따라서 throttle의 인터벌을 약간 조정하는 것 필요. 지도 드래그, 음성 인식 후 자막 출력에서 이 오퍼레이터 사용 가능
+//            .throttle(for: 2.1, scheduler: DispatchQueue.main, latest: true)
+        // 4. retry: 재시도 횟수 지정 (Error가 발생 시, 바로 Error로 가는 것이 아니라, 재시도를 한 후에 error 처리)
+        // => API 통신 시, combine 사용할 때 주로 많이 사용함. download 나 어떠한 실패가 있을 수 있기 때문에 재시도 하려고 하는 것
+//            .tryMap({ int in
+//                if int % 2 == 0 {
+//                    throw URLError(.badServerResponse)
+//                }
+//                return String(int)
+//            })
+//            .retry(3) // error 발생 시, 재시도 후에 (이때는 이미 다음 stream이 지나가고 있고 여기서 부터 다시 시작) error 처리
+        // 5. timeout: 설정한 시간 안에 값이 넘어오지 않으면 stream 자동 종료 시켜버림 (서버 통신 시, 일정 시간이 지나도 사진이나, 다른 값이 넘어오지 않을 경우, 넘어온 값만 출력하거나 종료시켜서 error 처리할 수 있음
+            .timeout(0.99, scheduler: DispatchQueue.main) // 0.9초 안에 값이 나오지 않기 때문에 1만 출력되고 stream 종료
+        
             .map({ String($0) })
             .sink { completion in
                 switch completion {
