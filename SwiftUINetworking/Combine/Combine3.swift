@@ -19,6 +19,10 @@ final class Combine3DataService {
     let currentValuePublisher = CurrentValueSubject<Int, Error>(777)
     // 2. PassThroughPublisher: init value 가 없다는 게 차이점이라서 메모리 관리에 저장공간이 없어서 app 최적화에 passThroughPublisher 더 강점이 있음
     let passThroughPublisher = PassthroughSubject<Int, Error>()
+    // combineLatest Publisher 생성
+    let boolPublisher = PassthroughSubject<Bool, Error>()
+    // merge용 Publisher 생성
+    let intMergePublisher = PassthroughSubject<Int, Error>()
     
     // initialization
     init() {
@@ -31,13 +35,21 @@ final class Combine3DataService {
 //        let items: [Int] = Array(0..<6)
 //        let items: [Int] = [0,1,2,2,0,3,4,7,5]
 //        let items: [Int?] = [0,1,2,nil,3,4,5]
-        let items: [Int] = Array(1..<11)
+        let items: [Int] = Array(0..<11)
         
         for index in items.indices {
             DispatchQueue.main.asyncAfter(deadline: .now() + Double(index)) {
 //                self.basicPublisher = items[index]
 //                self.currentValuePublisher.send(items[index])
                 self.passThroughPublisher.send(items[index])
+                
+                if (index > 3 && index < 7) {
+                    self.boolPublisher.send(true)
+                    self.intMergePublisher.send(777)
+                } else {
+                    self.boolPublisher.send(false)
+                }
+                
                 // passThroughPublisher에게 마지막 부분을 알려줘야 .last() 실행
                 if index == items.indices.last {
                     self.passThroughPublisher.send(completion: .finished)
@@ -218,27 +230,60 @@ final class Combine3ViewModel {
          */
         
         // MARK: - Control Timing Operations
+        /*
+         // 1. debounce: 지정된 시간 내에 여러 개 값을 single (단일) 값으로 축소 시킴 -> 입력에서 주로 사용하며 분절적인 실행을 줄여서 (노이즈 제거 같이) 비싼 작업의 횟수를 줄이고 경쟁상태를 피함
+         // 예) TextField 사용할 때 유저가 ID, Password를 빠르게 입력한다고 가정하면, stream이 짧은 시간에 계속 돌고 결국에 마지막에 입력한 값이 서버로 전송되야 하는 데 그렇지 않고 중간에 계속 보내게 되면 Data 충돌이 발생할 수 있기 때문에 debounce를 주어서 최종 1개의 값만 넘겨줄 수 있게 해 줌
+ //            .debounce(for: 0.75, scheduler: DispatchQueue.main)
+         // 2. delay: 말 그대로 시간 지연을 시켜서 처음 stream을 일정 시간 지난 다음에 시작시키기
+         // 예) 데이터를 로딩할 때 인위적으로 딜레이를 줘서 ProgressView() 같이 로딩 이미지를 동작시키는 데 사용함 -> 늦게 실행할 뿐 분절적인 실행은 그대로임
+ //            .delay(for: 3, scheduler: DispatchQueue.main)
+         // 3. throttle: stream에서 지정된 시간 내에 Published된 가장 최근 또는 첫번째 요소만 걸러서 출력(for는 초 단위 인터벌을 가리킴)
+         // 단, 값 출력 시점과 throttle의 interval이 겹치면 경계값의 문제가 발생할 수 있다. 따라서 throttle의 인터벌을 약간 조정하는 것 필요. 지도 드래그, 음성 인식 후 자막 출력에서 이 오퍼레이터 사용 가능
+ //            .throttle(for: 2.1, scheduler: DispatchQueue.main, latest: true)
+         // 4. retry: 재시도 횟수 지정 (Error가 발생 시, 바로 Error로 가는 것이 아니라, 재시도를 한 후에 error 처리)
+         // => API 통신 시, combine 사용할 때 주로 많이 사용함. download 나 어떠한 실패가 있을 수 있기 때문에 재시도 하려고 하는 것
+ //            .tryMap({ int in
+ //                if int % 2 == 0 {
+ //                    throw URLError(.badServerResponse)
+ //                }
+ //                return String(int)
+ //            })
+ //            .retry(3) // error 발생 시, 재시도 후에 (이때는 이미 다음 stream이 지나가고 있고 여기서 부터 다시 시작) error 처리
+         // 5. timeout: 설정한 시간 안에 값이 넘어오지 않으면 stream 자동 종료 시켜버림 (서버 통신 시, 일정 시간이 지나도 사진이나, 다른 값이 넘어오지 않을 경우, 넘어온 값만 출력하거나 종료시켜서 error 처리할 수 있음
+                .timeout(0.99, scheduler: DispatchQueue.main) // 0.9초 안에 값이 나오지 않기 때문에 1만 출력되고 stream 종료
+         */
         
-        // 1. debounce: 지정된 시간 내에 여러 개 값을 single (단일) 값으로 축소 시킴 -> 입력에서 주로 사용하며 분절적인 실행을 줄여서 (노이즈 제거 같이) 비싼 작업의 횟수를 줄이고 경쟁상태를 피함
-        // 예) TextField 사용할 때 유저가 ID, Password를 빠르게 입력한다고 가정하면, stream이 짧은 시간에 계속 돌고 결국에 마지막에 입력한 값이 서버로 전송되야 하는 데 그렇지 않고 중간에 계속 보내게 되면 Data 충돌이 발생할 수 있기 때문에 debounce를 주어서 최종 1개의 값만 넘겨줄 수 있게 해 줌
-//            .debounce(for: 0.75, scheduler: DispatchQueue.main)
-        // 2. delay: 말 그대로 시간 지연을 시켜서 처음 stream을 일정 시간 지난 다음에 시작시키기
-        // 예) 데이터를 로딩할 때 인위적으로 딜레이를 줘서 ProgressView() 같이 로딩 이미지를 동작시키는 데 사용함 -> 늦게 실행할 뿐 분절적인 실행은 그대로임
-//            .delay(for: 3, scheduler: DispatchQueue.main)
-        // 3. throttle: stream에서 지정된 시간 내에 Published된 가장 최근 또는 첫번째 요소만 걸러서 출력(for는 초 단위 인터벌을 가리킴)
-        // 단, 값 출력 시점과 throttle의 interval이 겹치면 경계값의 문제가 발생할 수 있다. 따라서 throttle의 인터벌을 약간 조정하는 것 필요. 지도 드래그, 음성 인식 후 자막 출력에서 이 오퍼레이터 사용 가능
-//            .throttle(for: 2.1, scheduler: DispatchQueue.main, latest: true)
-        // 4. retry: 재시도 횟수 지정 (Error가 발생 시, 바로 Error로 가는 것이 아니라, 재시도를 한 후에 error 처리)
-        // => API 통신 시, combine 사용할 때 주로 많이 사용함. download 나 어떠한 실패가 있을 수 있기 때문에 재시도 하려고 하는 것
-//            .tryMap({ int in
-//                if int % 2 == 0 {
-//                    throw URLError(.badServerResponse)
+        // MARK: - Multiple Publisher
+        // 1. combineLatests: 두 개의 파이프라인을 단일 출력으로 합치고, 출력 유형을 튜플 타입으로 변환시켜서 Publisher 가 새로운 값을 제공할 때마다 업데이트 함
+        // -> 두 개의 publisher가 각각 send 할 때마다 각 publisher의 현재 최신값을 내보내서 combineLatest를 하게 되므로 보통 두 개의 publisher가 send하면 각각 2번 중복되는 경우가 발생함
+//            .combineLatest(dataService.boolPublisher)
+//            .compactMap({ (int, bool) in
+//                if bool {
+//                    return String(int)
+//                } else {
+//                    return nil
 //                }
-//                return String(int)
 //            })
-//            .retry(3) // error 발생 시, 재시도 후에 (이때는 이미 다음 stream이 지나가고 있고 여기서 부터 다시 시작) error 처리
-        // 5. timeout: 설정한 시간 안에 값이 넘어오지 않으면 stream 자동 종료 시켜버림 (서버 통신 시, 일정 시간이 지나도 사진이나, 다른 값이 넘어오지 않을 경우, 넘어온 값만 출력하거나 종료시켜서 error 처리할 수 있음
-            .timeout(0.99, scheduler: DispatchQueue.main) // 0.9초 안에 값이 나오지 않기 때문에 1만 출력되고 stream 종료
+        // 축약 버전
+//            .compactMap({ $1 ? String($0) : nil })
+//            .removeDuplicates() // 같은 값의 pipeline이 2번 도는 경우가 발생하기 때문에 중복값 제거
+        // 2. merge: 두 개의 publisher를 합쳐서 단일 파이프라인에 합치는 것 (* 단, output, failure의 타입이 같아야 함)
+//            .merge(with: dataService.intMergePublisher) // 2개가 합쳐저서 한 번에 나오는 것 확인. 이 operator도 combineLatest처럼 send되는 순간 각 Publisher의 최신값이 적용됨
+//      // 3. zip: 두 개 이상의 Publisher를 하나로 압축해서 튜플형태로 출력함. 이때 Type과 상관없이 바로 합쳐버림 => combineLastest는 send가 있을 때마다 각 publisher의 최신값을 담아 튜플을 만들고, zip은 같은 이빨 즉 같은 순번을 기다렸다가 같은 순번이 나올때까지 기다렸다가 한번에 출력됨( send는 가장 느린Publisher에 맞춰짐) 따라서 아래 코드 중 boolPublisher와 passthroughPublisher는 계속 기다리는 요소가 있게 됨
+//            .zip(dataService.boolPublisher, dataService.intMergePublisher)
+//            .compactMap({ tuple in
+//                return String(tuple.0) + tuple.1.description + String(tuple.2)
+//            }) // intMergePublisher의 조건은 3개만 나오기 때문에 위에서 3개만 출력됨
+        // 4. catch: 실패한ㅇ Publisher를 대체해서 error가 발생했을 때 다른 publisher로 교체해서 stream 진행
+            .tryMap({ int in
+                if int == 3 {
+                    throw URLError(.badServerResponse)
+                } // int가 3일때 error가 발생하고 기존의 passThroughPublisher는 종료
+                return int
+            })
+            .catch({ error in
+                return self.dataService.intMergePublisher // 종료 시점에 error를 캐치하고 intMergePublisher가 작동이 되게끔 함
+            })
         
             .map({ String($0) })
             .sink { completion in
