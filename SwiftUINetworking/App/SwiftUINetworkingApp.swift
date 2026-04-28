@@ -11,7 +11,7 @@ import SwiftUI
 struct SwiftUINetworkingApp: App {
     var body: some Scene {
         WindowGroup {
-            URLSession2()
+            Task1()
         }
     }
 }
